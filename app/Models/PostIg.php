@@ -74,7 +74,7 @@ class PostIg extends Model
     // Get All PostIg
     function getAllPostIg(){
         $q = DB::select("
-            SELECT p.*
+            SELECT p.* from post_ig p
             WHERE p.status = true
         ");
         return $q;

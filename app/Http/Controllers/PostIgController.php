@@ -43,7 +43,9 @@ class PostIgController extends Controller
 
             $totalData = $this->postIgModel->getCountPostIg($filter);
             $data = $this->postIgModel->getListPostIg($filter);
-
+            foreach ($data as $row) {
+                $row->path_image = ($row->path_image) ? url('/') . '/' . $row->path_image : null;
+            }
             $response = [
                 'success' => true,
                 'data' => $data,
@@ -66,7 +68,7 @@ class PostIgController extends Controller
     {
         $data = $this->postIgModel->getAllPostIg();
         foreach ($data as $row) {
-            $row->foto = ($row->foto) ? url('/') . '/' . $row->foto : null;
+            $row->path_image = ($row->path_image) ? url('/') . '/' . $row->path_image : null;
         }
 
         $response = [

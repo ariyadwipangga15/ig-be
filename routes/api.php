@@ -36,6 +36,8 @@ Route::get('/', function () {
 // No Authorization
 Route::post('v1/login', [AuthController::class, 'login']);
 Route::post('v1/ubah-password', [AuthController::class, 'ubahPassword']);
+Route::post('v1/register', [ UserController::class,'CreateUser'])->name('register');
+Route::get('v1/ig', [PostIgController::class, 'getAll'])->name('ig');
 
 // With Authorization
 Route::middleware(['jwt.verify'])

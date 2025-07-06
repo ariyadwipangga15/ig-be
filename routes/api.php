@@ -38,6 +38,7 @@ Route::post('v1/login', [AuthController::class, 'login']);
 Route::post('v1/ubah-password', [AuthController::class, 'ubahPassword']);
 Route::post('v1/register', [ UserController::class,'CreateUser'])->name('register');
 Route::get('v1/ig', [PostIgController::class, 'getAll'])->name('ig');
+Route::get('v1/ig-komentar', [PostIgController::class, 'getAllKomentar'])->name('ig-komentar');
 
 // With Authorization
 Route::middleware(['jwt.verify'])
@@ -125,4 +126,7 @@ Route::middleware(['jwt.verify'])
     Route::get('postIg/{id?}', [PostIgController::class, 'show']);
     Route::post('update-postIg', [PostIgController::class, 'update']);
     Route::delete('postIg/{id?}', [PostIgController::class, 'destroy']);
+    Route::post('postIg-komentar', [PostIgController::class, 'storeKomentar'])->name('postIg-komentar');
+    Route::post('postIg-like', [PostIgController::class, 'storeLike'])->name('postIg-like');
+    Route::put('update-likes/{id?}', [PostIgController::class, 'UpdateLikes']);
 });

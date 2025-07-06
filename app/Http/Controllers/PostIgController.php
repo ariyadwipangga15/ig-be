@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\PostIg;
+use App\Models\PostKomentar;
+use App\Models\PostLike;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
@@ -11,9 +13,13 @@ use File;
 class PostIgController extends Controller
 {
     protected $postIgModel;
+    protected $postKomentarModel;
+    protected $postLikeModel;
     public function __construct()
     {
         $this->postIgModel = new PostIg();
+        $this->postKomentarModel = new PostKomentar();
+        $this->postLikeModel = new PostLike();
     }
 
     /**
@@ -69,7 +75,20 @@ class PostIgController extends Controller
         $data = $this->postIgModel->getAllPostIg();
         foreach ($data as $row) {
             $row->path_image = ($row->path_image) ? url('/') . '/' . $row->path_image : null;
-        }
+            $row->komentar = $this->postKomentarModel->getAllPostKomentar($row->id);
+             // Tambahkan count like
+            $row->likes = DB::table('post_like')
+            ->where('post_ig_id', $row->id)
+            ->count();
+
+            $userId = $request->user_id; // Ambil user dari frontend();
+            $row->likedByCurrentUser = $userId
+                ? DB::table('post_like')
+                    ->where('post_ig_id', $row->id)
+                    ->where('user_id', $userId)
+                    ->exists()
+                : false;
+            }
 
         $response = [
             'success' => true,
@@ -274,4 +293,149 @@ class PostIgController extends Controller
             ]);
         }
     }
+
+     /**
+     * StoreKomentar a newly created resource in storage.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
+    public function storeKomentar(Request $request)
+    {
+        try {
+            DB::beginTransaction();
+            $postKomentar = PostKomentar::create([
+                'post_ig_id' => $request->post_ig_id,
+                'komentar' => $request->komentar,
+                'nama_user' => $request->nama_user,
+            ]);
+
+            DB::commit();
+            $response = [
+                'success' => true,
+                'message' => 'Data berhasil disimpan !',
+                'data' => $postKomentar,
+            ];
+
+            return response()->json($response, 200);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => $e->errorInfo,
+            ]);
+        }
+    }
+
+     /**
+     * StoreLike     a newly created resource in storage.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
+    public function storeLike(Request $request)
+    {
+        try {
+            DB::beginTransaction();
+    
+            $postIgId = $request->post_ig_id;
+            $userId = $request->user_id;
+    
+            // Cek apakah like sudah ada
+            $existingLike = PostLike::where('post_ig_id', $postIgId)
+                ->where('user_id', $userId)
+                ->first();
+    
+            if ($existingLike) {
+                // Sudah like → hapus (unlike)
+                $existingLike->delete();
+    
+                DB::commit();
+    
+                return response()->json([
+                    'success' => true,
+                    'liked' => false,
+                    'message' => 'Berhasil di-unlike.',
+                ]);
+            } else {
+                // Belum like → simpan
+                $newLike = PostLike::create([
+                    'post_ig_id' => $postIgId,
+                    'user_id' => $userId,
+                ]);
+    
+                DB::commit();
+    
+                return response()->json([
+                    'success' => true,
+                    'liked' => true,
+                    'message' => 'Berhasil like.',
+                    'data' => $newLike
+                ]);
+            }
+        } catch (\Exception $e) {
+            DB::rollBack();
+    
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(), // Ganti $e->errorInfo jika ingin array
+            ], 500);
+        }
+    }
+    
+
+      /**
+     * UpdateLikes the specified resource in storage.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function updateLikes(Request $request, $id)
+    {
+       
+        try {
+            $postIg =PostIg::find($id);
+            if (is_null($postIg)) {
+                return response()->json([
+                    "success" => false,
+                    "message" => "Data tidak ditemukan !",
+                ]);
+            }
+
+            DB::beginTransaction();
+            $postIg->update([
+                'likes' => $request->input('likes'),
+            ]);
+
+            DB::commit();
+            return response()->json([
+                "success" => true,
+                "message" => "Data berhasil diubah !",
+                "data" => $postIg,
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => $e->errorInfo,
+            ]);
+        }
+    }
+
+    public function getAllKomentar(Request $request)
+    {
+        $idPostIg = $request->get('idPostIg');
+        $filter = array(
+         'idPostIg' => $idPostIg,
+     );
+        $data = $this->postKomentarModel->getAllPostKomentar($filter);
+
+        $response = [
+            'success' => true,
+            'data' => $data,
+        ];
+        return response()->json($response, 200, [], JSON_UNESCAPED_SLASHES);
+    }
+
 }

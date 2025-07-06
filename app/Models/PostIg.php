@@ -18,6 +18,7 @@ class PostIg extends Model
         'is_post',
         'is_like',
         'is_komentar',
+        'likes',
     ];
 
     /**
